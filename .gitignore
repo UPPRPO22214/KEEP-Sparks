@@ -182,3 +182,6 @@ Dockerfile.local
 
 # Gemini file
 GEMINI.md
+
+.claude/
+CLAUDE.md
