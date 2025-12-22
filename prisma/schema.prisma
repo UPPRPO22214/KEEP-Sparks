@@ -1,0 +1,103 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+model User {
+  id         String  @id @default(cuid())
+  telegramId BigInt  @unique
+  firstName  String?
+  role       Role    @default(USER)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shiftMemberships ShiftMember[]
+
+  scoreTxnsCreated ScoreTxn[] @relation("ScoreTxnCreatedBy")
+  scoreTxnsForUser ScoreTxn[] @relation("ScoreTxnForUser")
+}
+
+model Shift {
+  id        String   @id @default(cuid())
+  title     String
+  joinCode  String   @unique
+  startsAt  DateTime?
+  endsAt    DateTime?
+
+  events    Event[]
+  members   ShiftMember[]
+  scoreTxns ScoreTxn[]
+
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+model Event {
+  id        String   @id @default(cuid())
+  shiftId   String
+  title     String
+  details   String?
+
+  shift     Shift    @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  scoreTxns ScoreTxn[]
+
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+model ScoreTxn {
+  id          String  @id @default(cuid())
+  shiftId     String
+  eventId     String?
+  userId      String
+  createdById String
+  delta       Int
+  comment     String?
+
+  shift Shift  @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  event Event? @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  user      User @relation("ScoreTxnForUser", fields: [userId], references: [id], onDelete: Cascade)
+  createdBy User @relation("ScoreTxnCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+model ShiftMember {
+  id       String @id @default(cuid())
+  shiftId  String
+  userId   String
+
+  shift    Shift  @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@unique([shiftId, userId])
+  @@index([shiftId])
+  @@index([userId])
+}
+
